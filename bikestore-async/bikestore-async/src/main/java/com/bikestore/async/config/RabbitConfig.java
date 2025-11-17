@@ -1,6 +1,9 @@
 package com.bikestore.async.config;
 
-import org.springframework.amqp.core.Queue;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.amqp.core.*;
+import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,20 +19,23 @@ public class RabbitConfig {
 
     @Value("${bikestore.queue.orders-dlq}")
     private String dlqQueueName;
-
     @Bean
     public Queue ordersQueue() {
-        // durable = true
-        return new Queue(ordersQueueName, true);
+        return QueueBuilder.durable(ordersQueueName)
+                .withArgument("x-dead-letter-exchange", "")
+                .withArgument("x-dead-letter-routing-key", dlqQueueName)
+                .build();
     }
-
     @Bean
     public Queue emailsQueue() {
-        return new Queue(emailsQueueName, true);
+        return QueueBuilder.durable(emailsQueueName).build();
     }
-
     @Bean
     public Queue dlqQueue() {
-        return new Queue(dlqQueueName, true);
+        return QueueBuilder.durable(dlqQueueName).build();
+    }
+    @Bean
+    public MessageConverter jsonMessageConverter() {
+        return new Jackson2JsonMessageConverter(new ObjectMapper());
     }
 }
